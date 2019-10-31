@@ -1,0 +1,51 @@
+{
+  "signing": {
+    "default": {
+      "auth_key": "default",
+      "expiry": "43800h",
+      "usages": [
+         "signing",
+         "key encipherment",
+         "client auth",
+         "server auth"
+       ]
+     },
+    "profiles": {
+        "user1": {
+          "auth_key": "user1",
+          "expiry": "43800h",
+          "usages": [
+             "signing",
+             "key encipherment",
+             "client auth",
+             "server auth"
+           ]
+         },
+        "user2": {
+          "auth_key": "user2",
+          "expiry": "43800h",
+          "usages": [
+             "signing",
+             "key encipherment",
+             "client auth",
+             "server auth"
+           ]
+         }
+    }
+  },
+  "auth_keys": {
+    "default": {
+      "key": "00112233",
+      "type": "standard"
+    },
+    "user1": {
+      "key": "00112244",
+      "type": "standard"
+    },
+    "user2": {
+      "key": "00112255",
+      "type": "standard"
+    }
+  }
+}
+

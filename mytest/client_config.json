@@ -1,0 +1,19 @@
+{
+  "signing": {
+    "default": {
+      "auth_remote": {
+        "remote": "ca_server",
+        "auth_key": "default"
+      }
+    }
+  },
+  "auth_keys": {
+    "default": {
+      "key": "00112244",
+      "type": "standard"
+    }
+  },
+  "remotes": {
+    "ca_server": "localhost:8888"
+  }
+}
