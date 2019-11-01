@@ -7,6 +7,12 @@ import (
 	"net/http"
 	"net/http/httputil"
 
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/csv"
+	"io"
+	"os"
+	
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/helpers"
@@ -94,6 +100,75 @@ func fail(w http.ResponseWriter, req *http.Request, status, code int, msg, ad st
 	jenc.Encode(res)
 }
 
+// Yanrui Begin
+type HtpasswdFile struct {
+	Users map[string]string
+}
+
+var htpasswd *HtpasswdFile = nil
+
+func NewHtpasswdFromFile(path string) (*HtpasswdFile, error) {
+	fmt.Printf("using htpasswd file %s\n", path)
+	r, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return NewHtpasswd(r)
+}
+
+func NewHtpasswd(file io.Reader) (*HtpasswdFile, error) {
+	csv_reader := csv.NewReader(file)
+	csv_reader.Comma = ':'
+	csv_reader.Comment = '#'
+	csv_reader.TrimLeadingSpace = true
+
+	records, err := csv_reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	h := &HtpasswdFile{Users: make(map[string]string)}
+	for _, record := range records {
+		h.Users[record[0]] = record[1]
+	}
+	fmt.Println("Read in entries from htpasswd file")
+	return h, nil
+}
+
+func (h *HtpasswdFile) Validate(user string, password string) bool {
+	if h == nil {
+		log.Errorf("htpasswd is not initialized")
+		return false
+	}
+	realPassword, exists := h.Users[user]
+	if !exists {
+		return false
+	}
+	if realPassword[:5] == "{SHA}" {
+		d := sha1.New()
+		d.Write([]byte(password))
+		if realPassword[5:] == base64.StdEncoding.EncodeToString(d.Sum(nil)) {
+			return true
+		}
+	} else {
+		log.Errorf("Invalid htpasswd entry for %s. Must be a SHA entry.", user)
+	}
+	return false
+}
+
+func authenticateUser(username string, password string) bool {
+	var err error
+	if htpasswd == nil {
+		htpasswd, err = NewHtpasswdFromFile("htpwd.txt")
+		if err != nil || htpasswd == nil {
+			return false
+		} else {
+			fmt.Println("Successfully initialized htpassword")
+		}
+	}
+	return htpasswd.Validate(username, password)
+}
+//Yanrui End
+
 func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 	incRequests()
 
@@ -101,7 +176,18 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		fail(w, req, http.StatusMethodNotAllowed, 1, "only POST is permitted", "")
 		return
 	}
-
+	
+	user, pwd, ok := req.BasicAuth()
+	if !ok {
+		fail(w, req, http.StatusUnauthorized, 1, "Please provide username and password", "")
+		return
+	}
+	log.Infof("Username: %s Password: %s\n", user, pwd)
+	ok = authenticateUser(user, pwd)
+	if !ok {
+		fail(w, req, http.StatusUnauthorized, 1, "User authentication failed", "")
+		return
+	}
 	defer req.Body.Close()
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
