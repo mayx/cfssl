@@ -1,5 +1,5 @@
 {
-  "CN": "myesp.local",
+  "CN": "localhost",
   "key": {
     "algo": "rsa",
     "size": 2048

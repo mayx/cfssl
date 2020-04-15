@@ -177,17 +177,21 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	
-	user, pwd, ok := req.BasicAuth()
-	if !ok {
-		fail(w, req, http.StatusUnauthorized, 1, "Please provide username and password", "")
-		return
+	enablehtpw := os.Getenv("ENABLEHTPASSWD")
+	if enablehtpw == "1" {
+		user, pwd, ok := req.BasicAuth()
+		if !ok {
+			fail(w, req, http.StatusUnauthorized, 1, "Please provide username and password", "")
+			return
+		}
+		log.Infof("Username: %s Password: %s\n", user, pwd)
+		ok = authenticateUser(user, pwd)
+		if !ok {
+			fail(w, req, http.StatusUnauthorized, 1, "User authentication failed", "")
+			return
+		}
 	}
-	log.Infof("Username: %s Password: %s\n", user, pwd)
-	ok = authenticateUser(user, pwd)
-	if !ok {
-		fail(w, req, http.StatusUnauthorized, 1, "User authentication failed", "")
-		return
-	}
+	
 	defer req.Body.Close()
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {

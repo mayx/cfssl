@@ -4,6 +4,7 @@ package client
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	stderr "errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -121,6 +123,28 @@ func (srv *server) createTransport() *http.Transport {
 	}
 	// Setup HTTPS client
 	tlsConfig := srv.TLSConfig
+	tlscert := os.Getenv("TLSCERT")
+	if tlscert != ""  && tlsConfig != nil   { //Yanrui Beginning
+                // Read in the cert file
+                certs, err := ioutil.ReadFile(tlscert)
+                if err != nil {
+                        fmt.Printf("Info: file %s doesn't exist\n", tlscert)
+                } else {
+                        rootCAs, _ := x509.SystemCertPool()
+                        if rootCAs == nil {
+                                rootCAs = x509.NewCertPool()
+                        }
+
+                        // Append our cert to the system pool
+                        if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+                                fmt.Println("No certs appended, using system certs only")
+                        } else  {
+                                fmt.Printf("Added %s to root CAs\n", tlscert)
+                                tlsConfig.RootCAs = rootCAs;
+                        }
+                }
+        }//Yanrui End
+
 	tlsConfig.BuildNameToCertificate()
 	transport.TLSClientConfig = tlsConfig
 	// Setup Proxy
@@ -135,6 +159,10 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	var resp *http.Response
 	var err error
 	client := &http.Client{}
+	tlscert := os.Getenv("TLSCERT")
+	if tlscert != "" && srv.TLSConfig == nil {
+		srv.TLSConfig = &tls.Config{}
+	}
 	if srv.TLSConfig != nil {
 		client.Transport = srv.createTransport()
 	}
