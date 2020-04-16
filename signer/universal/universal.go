@@ -220,3 +220,6 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 func (s *Signer) Policy() *config.Signing {
 	return s.policy
 }
+func (s *Signer) GetRootCertificate() (cert *x509.Certificate) {
+	return s.local.GetRootCertificate()
+}

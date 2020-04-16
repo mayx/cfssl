@@ -671,3 +671,7 @@ func (s *Signer) SetReqModifier(func(*http.Request, []byte)) {
 func (s *Signer) Policy() *config.Signing {
 	return s.policy
 }
+
+func (s *Signer) GetRootCertificate() (cert *x509.Certificate) {
+	return s.ca
+}

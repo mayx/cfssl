@@ -116,6 +116,7 @@ type Signer interface {
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)
 	SetReqModifier(func(*http.Request, []byte))
+	GetRootCertificate() (cert *x509.Certificate)
 }
 
 // Profile gets the specific profile from the signer

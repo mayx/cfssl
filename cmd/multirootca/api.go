@@ -328,3 +328,22 @@ func dumpMetrics(w http.ResponseWriter, req *http.Request) {
 
 	w.Write(out)
 }
+
+func caCert(w http.ResponseWriter, req *http.Request) {
+	label := req.FormValue("label")
+	if label == "" {
+		label = defaultLabel
+	}
+	if label == "" {
+		label = "default"
+	}
+	signer := signers[label]
+	if signer == nil {
+		w.Write([]byte("Error: certificate not found for label "+label))
+		return
+	}
+	log.Info("Providing ca certificate")
+	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+	w.WriteHeader(200)
+	w.Write(helpers.EncodeCertificatePEM(signer.GetRootCertificate()))
+}

@@ -93,6 +93,7 @@ func main() {
 	http.HandleFunc("/api/v1/cfssl/authsign", dispatchRequest)
 	http.Handle("/api/v1/cfssl/info", infoHandler)
 	http.Handle("/api/v1/cfssl/metrics", metrics)
+	http.HandleFunc("/api/v1/cfssl/cacert", caCert)
 
 	if *flagEndpointCert == "" && *flagEndpointKey == "" {
 		log.Info("Now listening on ", *flagAddr)
