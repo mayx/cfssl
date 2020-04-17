@@ -1,18 +1,16 @@
-FROM golang:1.12.7
-
-ENV USER root
-
+FROM golang:alpine AS build
+RUN apk add --no-cache git mercurial \
+    && go get gopkg.in/square/go-jose.v2 \
+    && apk del git mercurial
+RUN apk add --update alpine-sdk
 WORKDIR /go/src/github.com/cloudflare/cfssl
 COPY . .
+ENV GOPATH /go/
+RUN make -j4
 
-# restore all deps and build
-RUN go get github.com/cloudflare/cfssl_trust/... && \
-    go get github.com/GeertJohan/go.rice/rice && \
-    rice embed-go -i=./cli/serve && \
-    cp -R /go/src/github.com/cloudflare/cfssl_trust /etc/cfssl && \
-    go install ./cmd/...
-
-EXPOSE 8888
-
-ENTRYPOINT ["cfssl"]
-CMD ["--help"]
+FROM alpine
+COPY --from=build /go/src/github.com/cloudflare/cfssl/bin /app/bin
+COPY --from=build /go/src/github.com/cloudflare/cfssl/myscripts /app/myscripts
+COPY --from=build /go/src/github.com/cloudflare/cfssl/myconfig /app/myconfig
+WORKDIR /app/myconfig/
+ENTRYPOINT ["../myscripts/run_multirootca.sh"]
